@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nutrivio — Nutrición + Fitness con IA</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #ffffff;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #4CAF50, #FF9800);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    nav a {
+      color: #aaa;
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: #fff; }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 5rem 2rem 4rem;
+    }
+
+    .badge {
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.4);
+      color: #4CAF50;
+      padding: 0.35rem 1rem;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      max-width: 800px;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #4CAF50, #FF9800);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: #aaa;
+      max-width: 550px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4CAF50, #43A047);
+      color: #fff;
+      border: none;
+      padding: 0.85rem 2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 0.85rem 2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+
+    .feature-card {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 16px;
+      padding: 2rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(76, 175, 80, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .tabs-section {
+      max-width: 900px;
+      margin: 0 auto 5rem;
+      padding: 0 2rem;
+      text-align: center;
+    }
+
+    .tabs-section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .tabs-section p {
+      color: #888;
+      margin-bottom: 2.5rem;
+    }
+
+    .tab-list {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .tab-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 100px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    .tab-chip .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+    }
+
+    .tech-section {
+      background: #0e0e0e;
+      border-top: 1px solid #1a1a1a;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .tech-section h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .tech-section p {
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    .tech-tags {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .tech-tag {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: #444;
+      font-size: 0.85rem;
+      border-top: 1px solid #1a1a1a;
+    }
+
+    footer span {
+      background: linear-gradient(135deg, #4CAF50, #FF9800);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Nutrivio</div>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#tabs">App</a>
+      <a href="#tech">Tech</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="badge">iOS 17+ · SwiftUI · Powered by Claude AI</div>
+    <h1>Come bien. Muévete bien.<br><span>Todo en un solo lugar.</span></h1>
+    <p class="subtitle">
+      Nutrivio combina análisis de alimentos con IA, rutinas de fitness personalizadas,
+      e integración con HealthKit — todo en una app nativa para iPhone.
+    </p>
+    <div class="cta-group">
+      <a href="https://apps.apple.com" class="btn-primary">Descargar en App Store</a>
+      <a href="#features" class="btn-secondary">Ver Features</a>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="feature-card">
+      <div class="feature-icon">📸</div>
+      <h3>Análisis de Alimentos con IA</h3>
+      <p>Toma una foto de tu comida y Claude Vision calcula macros, calorías y nutrientes al instante.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏋️</div>
+      <h3>Rutinas Personalizadas con IA</h3>
+      <p>Genera rutinas de entrenamiento adaptadas a tu nutrición, sueño y nivel de recuperación.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">❤️</div>
+      <h3>Integración con HealthKit</h3>
+      <p>Lee pasos, calorías, sueño y frecuencia cardíaca. Escribe datos de nutrición e hidratación.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Dashboard Unificado</h3>
+      <p>Visualiza tu progreso diario: macros, entrenamientos, tendencias de salud y metas personales.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Onboarding Inteligente</h3>
+      <p>Configura tus metas de calorías, macros y preferencias de entrenamiento en minutos.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔔</div>
+      <h3>Suscripción Premium</h3>
+      <p>Desbloquea análisis ilimitados, rutinas avanzadas y reportes detallados con StoreKit 2.</p>
+    </div>
+  </section>
+
+  <section class="tabs-section" id="tabs">
+    <h2>5 Pestañas, Todo lo que Necesitas</h2>
+    <p>Diseñada con MVVM y SwiftUI para una experiencia fluida e intuitiva.</p>
+    <div class="tab-list">
+      <div class="tab-chip"><span class="dot"></span> Inicio</div>
+      <div class="tab-chip"><span class="dot"></span> Nutrición</div>
+      <div class="tab-chip"><span class="dot"></span> Foto IA</div>
+      <div class="tab-chip"><span class="dot"></span> Fitness</div>
+      <div class="tab-chip"><span class="dot"></span> Perfil</div>
+    </div>
+  </section>
+
+  <section class="tech-section" id="tech">
+    <h2>Stack Tecnológico</h2>
+    <p>Construido con las últimas tecnologías de Apple y modelos de IA de frontera.</p>
+    <div class="tech-tags">
+      <span class="tech-tag">SwiftUI</span>
+      <span class="tech-tag">Swift 5.9</span>
+      <span class="tech-tag">iOS 17+</span>
+      <span class="tech-tag">MVVM</span>
+      <span class="tech-tag">Claude Vision API</span>
+      <span class="tech-tag">HealthKit</span>
+      <span class="tech-tag">AVFoundation</span>
+      <span class="tech-tag">StoreKit 2</span>
+      <span class="tech-tag">Vision Framework</span>
+      <span class="tech-tag">XcodeGen</span>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2025 <span>Nutrivio</span> · Nutrición + Fitness con IA</p>
+  </footer>
+
+</body>
+</html>
