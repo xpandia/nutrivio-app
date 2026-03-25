@@ -1,0 +1,31 @@
+  No necesito la landing page — ya tenemos una. Tu trabajo es construir la app iOS de Nutrivio.                                                                   
+                                                                                               
+  Los 32 archivos Swift ya están en App/. El entry point es App/NutrivioApp.swift.                                                                                
+                                                                                                                                                                  
+  Como Replit no puede compilar iOS nativo directamente, necesito que hagas esto:                                                                                 
+                                                                                                                                                                  
+  1. PRIMERO: Revisa todos los archivos Swift en App/ y corrige cualquier error de compilación que encuentres (tipos incompatibles, async/await faltantes, imports
+   incorrectos)                                                                                                                                                   
+                                                            
+  2. SEGUNDO: Agrega persistencia con SwiftData. Crea @Model classes para los modelos principales:                                                                
+     - Meal (comida con foto, calorías, macros)                                                                                                                   
+     - Workout (rutina de ejercicio)           
+     - DailyLog (log diario unificado)                                                                                                                            
+     Modifica NutrivioApp.swift para agregar .modelContainer()                                                                                                    
+     Modifica los ViewModels para usar SwiftData queries                                                                                                          
+                                                                                                                                                                  
+  3. TERCERO: Mejora la UI de estas vistas clave:                                                                                                                 
+     - MacroRingsView.swift — 3 anillos concéntricos animados (Proteína=verde, Carbos=naranja, Grasa=azul)                                                        
+     - MealCardView.swift — Card editorial con foto grande + overlay de macros                                                                                    
+     - DashboardView.swift — Score diario "Tu día de salud: 78/100" con anillos                                                                                   
+     - PhotoCaptureView.swift — Interfaz de cámara con animación de análisis IA                                                                                   
+                                                                                                                                                                  
+  4. CUARTO: Asegúrate de que el código compile limpio ejecutando:                                                                                                
+     swift build 2>&1 | grep error                                                                                                                                
+                                                                                                                                                                  
+  La app es de nutrición + fitness con IA. Foto de comida → Claude Vision API → macros/calorías. Rutinas personalizadas basadas en nutrición + sueño. HealthKit   
+  para leer datos de Apple Watch.                                                                                                                                 
+                                                                                                                                                                  
+  Arquitectura: MVVM con SwiftUI, iOS 17+. Los archivos están organizados en Models/, Views/, ViewModels/, Services/, Theme/.                                     
+                                                                                                                                                                  
+  Empieza revisando los archivos existentes y corrigiendo errores.
