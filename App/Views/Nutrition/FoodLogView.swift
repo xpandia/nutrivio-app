@@ -7,8 +7,38 @@ import SwiftData
 struct FoodLogView: View {
     @EnvironmentObject var nutritionVM: NutritionViewModel
     @Environment(\.modelContext) private var modelContext
+
+    // @Query provides live SwiftData-backed observation of MealItem records
+    @Query(sort: \MealItem.timestamp, order: .forward) private var allMealItems: [MealItem]
+
     @State private var showingCamera = false
     @State private var selectedMealType: MealType?
+
+    // MARK: - Today's items derived from @Query
+
+    private var todayMealItems: [MealItem] {
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        return allMealItems.filter { $0.timestamp >= today && $0.timestamp < tomorrow }
+    }
+
+    private var todayMeals: [Meal] {
+        todayMealItems.map { $0.toMeal() }
+    }
+
+    private var todayMacros: Macros {
+        todayMealItems.reduce(.zero) { acc, item in
+            acc + Macros(calories: item.calories, protein: item.protein,
+                         carbs: item.carbs, fat: item.fat)
+        }
+    }
+
+    private var filteredMeals: [Meal] {
+        if let type = selectedMealType {
+            return todayMeals.filter { $0.mealType == type }
+        }
+        return todayMeals
+    }
 
     var body: some View {
         NavigationStack {
@@ -71,11 +101,11 @@ struct FoodLogView: View {
                     .foregroundStyle(NutrivioTheme.textSecondary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(Int(nutritionVM.todayCalories))")
+                    Text("\(Int(todayMacros.calories))")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(NutrivioTheme.textPrimary)
 
-                    Text("/ \(Int(nutritionVM.targetCalories)) kcal")
+                    Text("/ 2200 kcal")
                         .font(.subheadline)
                         .foregroundStyle(NutrivioTheme.textTertiary)
                 }
@@ -84,11 +114,11 @@ struct FoodLogView: View {
             Spacer()
 
             MacroRingsView(
-                protein: nutritionVM.todayMacros.protein,
+                protein: todayMacros.protein,
                 proteinTarget: 150,
-                carbs: nutritionVM.todayMacros.carbs,
+                carbs: todayMacros.carbs,
                 carbsTarget: 220,
-                fat: nutritionVM.todayMacros.fat,
+                fat: todayMacros.fat,
                 fatTarget: 73,
                 size: 80
             )
@@ -164,15 +194,6 @@ struct FoodLogView: View {
                     .foregroundStyle(.white)
             }
         }
-    }
-
-    // MARK: - Computed
-
-    private var filteredMeals: [Meal] {
-        if let type = selectedMealType {
-            return nutritionVM.todayMeals.filter { $0.mealType == type }
-        }
-        return nutritionVM.todayMeals
     }
 }
 

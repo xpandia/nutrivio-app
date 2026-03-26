@@ -77,25 +77,59 @@ struct PhotoCaptureView: View {
         VStack {
             Spacer()
 
-            // Viewfinder frame with corner accents
-            ZStack {
-                RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(.white.opacity(0.35), lineWidth: 1.5)
-                    .frame(width: 280, height: 280)
+            if cameraPermissionGranted {
+                // Viewfinder frame with corner accents
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(.white.opacity(0.35), lineWidth: 1.5)
+                        .frame(width: 280, height: 280)
 
-                ForEach(0..<4, id: \.self) { corner in
-                    CornerAccent()
-                        .rotationEffect(.degrees(Double(corner) * 90))
+                    ForEach(0..<4, id: \.self) { corner in
+                        CornerAccent()
+                            .rotationEffect(.degrees(Double(corner) * 90))
+                    }
+
+                    VStack(spacing: 8) {
+                        Image(systemName: "viewfinder")
+                            .font(.system(size: 36))
+                            .foregroundStyle(.white.opacity(0.4))
+
+                        Text("Centra tu comida aqui")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
                 }
-
-                VStack(spacing: 8) {
-                    Image(systemName: "viewfinder")
-                        .font(.system(size: 36))
+            } else {
+                // Permission denied — show a clear message
+                VStack(spacing: 20) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 52))
                         .foregroundStyle(.white.opacity(0.4))
 
-                    Text("Centra tu comida aqui")
+                    Text("Se necesita acceso a la camara")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Text("Ve a Ajustes → Privacidad → Camara y activa el permiso para Nutrivio.")
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.white.opacity(0.65))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Text("Abrir Ajustes")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(NutrivioTheme.primaryGreen)
+                            .clipShape(Capsule())
+                    }
                 }
             }
 
@@ -111,46 +145,50 @@ struct PhotoCaptureView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
 
-            // Controls
-            HStack(spacing: 40) {
-                // Gallery placeholder
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.white.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "photo.on.rectangle")
-                        .font(.title3)
-                        .foregroundStyle(.white)
-                }
-
-                // Shutter button
-                Button {
-                    Task { await captureAndAnalyze() }
-                } label: {
+            // Controls — only shown when permission is granted
+            if cameraPermissionGranted {
+                HStack(spacing: 40) {
+                    // Gallery placeholder
                     ZStack {
-                        Circle()
-                            .stroke(.white, lineWidth: 4)
-                            .frame(width: 72, height: 72)
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.white.opacity(0.15))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "photo.on.rectangle")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                    }
 
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 60, height: 60)
+                    // Shutter button
+                    Button {
+                        Task { await captureAndAnalyze() }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .stroke(.white, lineWidth: 4)
+                                .frame(width: 72, height: 72)
+
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 60, height: 60)
+                        }
+                    }
+                    .scaleEffect(isAnalyzing ? 0.9 : 1.0)
+                    .animation(NutrivioAnimations.springSmooth, value: isAnalyzing)
+
+                    // Manual entry
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.white.opacity(0.15))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "text.magnifyingglass")
+                            .font(.title3)
+                            .foregroundStyle(.white)
                     }
                 }
-                .scaleEffect(isAnalyzing ? 0.9 : 1.0)
-                .animation(NutrivioAnimations.springSmooth, value: isAnalyzing)
-
-                // Manual entry
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.white.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "text.magnifyingglass")
-                        .font(.title3)
-                        .foregroundStyle(.white)
-                }
+                .padding(.bottom, 40)
+            } else {
+                Spacer().frame(height: 112)
             }
-            .padding(.bottom, 40)
         }
     }
 

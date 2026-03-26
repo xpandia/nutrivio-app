@@ -75,18 +75,21 @@ struct DashboardView: View {
                     .stroke(Color.gray.opacity(0.12), lineWidth: 9)
                     .frame(width: 72, height: 72)
 
-                // Filled arc — gradient from green → bracket color at trim end
+                // Filled arc — tri-color gradient (green → orange → red)
+                // Gradient reverses score semantics: stops map 0%=red, 60%=orange, 100%=green
+                // so that a high-fill arc ends in green and a low-fill arc ends in red.
                 Circle()
                     .trim(from: 0, to: animatedScore / 100.0)
                     .stroke(
                         AngularGradient(
-                            gradient: Gradient(colors: [
-                                NutrivioTheme.emeraldGreen,
-                                scoreColor,
+                            gradient: Gradient(stops: [
+                                .init(color: Color.red, location: 0.0),
+                                .init(color: NutrivioTheme.energyOrange, location: 0.6),
+                                .init(color: NutrivioTheme.emeraldGreen, location: 1.0),
                             ]),
                             center: .center,
                             startAngle: .degrees(-90),
-                            endAngle: .degrees(-90 + 360 * (animatedScore / 100.0))
+                            endAngle: .degrees(270)
                         ),
                         style: StrokeStyle(lineWidth: 9, lineCap: .round)
                     )
@@ -106,7 +109,7 @@ struct DashboardView: View {
         let score = dailyLog.healthScore
         if score >= 80 { return NutrivioTheme.emeraldGreen }
         if score >= 60 { return NutrivioTheme.energyOrange }
-        return NutrivioTheme.carbsOrange
+        return Color.red
     }
 
     private var scoreIcon: String {
