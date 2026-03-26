@@ -14,6 +14,7 @@ class NutritionViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private var modelContext: ModelContext?
+    private var pendingPhotoData: Data?
 
     // MARK: - SwiftData Configuration
 
@@ -46,6 +47,8 @@ class NutritionViewModel: ObservableObject {
     func analyzePhoto(imageData: Data) async {
         isAnalyzingPhoto = true
         errorMessage = nil
+        // Retain raw bytes so addMeal() can persist them to MealItem.photoData
+        pendingPhotoData = imageData.isEmpty ? nil : imageData
 
         do {
             let analyzedMeal = try await AIFoodAnalysisService.shared.analyzeFood(imageData: imageData)
@@ -84,6 +87,10 @@ class NutritionViewModel: ObservableObject {
             ctx.insert(newLog)
             logEntry = newLog
         }
+        // Persist captured photo bytes if available
+        item.photoData = pendingPhotoData
+        pendingPhotoData = nil
+
         item.dailyLog = logEntry
         ctx.insert(item)
         try? ctx.save()
