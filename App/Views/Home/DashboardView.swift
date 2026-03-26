@@ -9,6 +9,21 @@ struct DashboardView: View {
 
     @State private var animatedScore: Double = 0
 
+    private var scoreRingGradient: AngularGradient {
+        let progress = max(animatedScore / 100.0, 0.01)
+        return AngularGradient(
+            gradient: Gradient(stops: [
+                .init(color: NutrivioTheme.emeraldGreen, location: 0.0),
+                .init(color: NutrivioTheme.energyOrange, location: 0.5),
+                .init(color: Color.red, location: 0.8),
+                .init(color: scoreColor, location: 1.0),
+            ]),
+            center: .center,
+            startAngle: .degrees(-90),
+            endAngle: .degrees(-90 + 360 * progress)
+        )
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             // MARK: - Health Score
@@ -75,22 +90,13 @@ struct DashboardView: View {
                     .stroke(Color.gray.opacity(0.12), lineWidth: 9)
                     .frame(width: 72, height: 72)
 
-                // Filled arc — tri-color gradient (green → orange → red)
-                // Gradient reverses score semantics: stops map 0%=red, 60%=orange, 100%=green
-                // so that a high-fill arc ends in green and a low-fill arc ends in red.
+                // Filled arc — tri-color gradient ending explicitly at the bracket color.
+                // AngularGradient sweeps exactly to the trim endpoint so location=1.0
+                // (scoreColor) always lands at the tip, matching green/orange/red bracket.
                 Circle()
                     .trim(from: 0, to: animatedScore / 100.0)
                     .stroke(
-                        AngularGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: Color.red, location: 0.0),
-                                .init(color: NutrivioTheme.energyOrange, location: 0.6),
-                                .init(color: NutrivioTheme.emeraldGreen, location: 1.0),
-                            ]),
-                            center: .center,
-                            startAngle: .degrees(-90),
-                            endAngle: .degrees(270)
-                        ),
+                        scoreRingGradient,
                         style: StrokeStyle(lineWidth: 9, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
