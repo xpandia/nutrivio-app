@@ -62,9 +62,6 @@ struct HomeView: View {
             dashboardVM.configure(modelContext: modelContext)
             nutritionVM.configure(modelContext: modelContext)
         }
-        .onChange(of: nutritionVM.todayMeals) { _, meals in
-            dashboardVM.syncMeals(meals)
-        }
     }
 
     // MARK: - Header
