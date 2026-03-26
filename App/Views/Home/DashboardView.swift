@@ -83,7 +83,7 @@ struct DashboardView: View {
                             gradient: Gradient(stops: [
                                 .init(color: NutrivioTheme.emeraldGreen, location: 0.0),
                                 .init(color: NutrivioTheme.energyOrange, location: 0.5),
-                                .init(color: NutrivioTheme.carbsOrange, location: 1.0),
+                                .init(color: Color.red, location: 1.0),
                             ]),
                             center: .center,
                             startAngle: .degrees(-90),

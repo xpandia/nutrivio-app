@@ -68,11 +68,24 @@ class NutritionViewModel: ObservableObject {
         withAnimation {
             todayMeals.append(meal)
         }
-        if let ctx = modelContext {
-            let item = MealItem(from: meal)
-            ctx.insert(item)
-            try? ctx.save()
+        guard let ctx = modelContext else { return }
+        let item = MealItem(from: meal)
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let logDescriptor = FetchDescriptor<DailyLogEntry>(
+            predicate: #Predicate { $0.date >= today && $0.date < tomorrow }
+        )
+        let logEntry: DailyLogEntry
+        if let existing = try? ctx.fetch(logDescriptor).first {
+            logEntry = existing
+        } else {
+            let newLog = DailyLogEntry(date: today)
+            ctx.insert(newLog)
+            logEntry = newLog
         }
+        item.dailyLog = logEntry
+        ctx.insert(item)
+        try? ctx.save()
     }
 
     func removeMeal(_ meal: Meal) {

@@ -98,14 +98,12 @@ class WorkoutViewModel: ObservableObject {
         guard let ctx = modelContext else { return }
         let today = Calendar.current.startOfDay(for: Date())
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
-        let descriptor = FetchDescriptor<WorkoutEntry>(
-            predicate: #Predicate { entry in
-                guard let log = entry.dailyLog else { return false }
-                return log.date >= today && log.date < tomorrow
-            }
+        let logDescriptor = FetchDescriptor<DailyLogEntry>(
+            predicate: #Predicate { $0.date >= today && $0.date < tomorrow }
         )
-        if let entry = try? ctx.fetch(descriptor).first {
-            todayWorkout = entry.toWorkout()
+        if let log = try? ctx.fetch(logDescriptor).first,
+           let workoutEntry = log.workout {
+            todayWorkout = workoutEntry.toWorkout()
         }
     }
 
