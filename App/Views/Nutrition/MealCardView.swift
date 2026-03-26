@@ -9,43 +9,46 @@ struct MealCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // MARK: - Photo area (editorial style)
-            ZStack(alignment: .bottomLeading) {
-                // Photo placeholder / actual photo
+            // MARK: - Photo area (editorial style, 220pt tall)
+            ZStack(alignment: .bottom) {
                 photoSection
 
-                // Gradient overlay
+                // Deep bottom gradient overlay
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.6)],
+                    colors: [.clear, .clear, .black.opacity(0.35), .black.opacity(0.75)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 100)
 
-                // Overlay content
+                // Overlay content — staggered vertical layout
                 VStack(alignment: .leading, spacing: 6) {
                     // Meal type pill
                     HStack(spacing: 4) {
                         Image(systemName: meal.mealType.icon)
                             .font(.system(size: 10))
-                        Text(meal.mealType.rawValue)
-                            .font(.system(size: 11, weight: .semibold))
+                        Text(meal.mealType.rawValue.uppercased())
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .tracking(0.5)
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(.ultraThinMaterial.opacity(0.8))
+                    .background(.ultraThinMaterial.opacity(0.85))
                     .clipShape(Capsule())
 
+                    // Meal name
                     Text(meal.name)
-                        .font(.title3)
+                        .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
                         .lineLimit(2)
+                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                 }
-                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 14)
 
-                // AI badge
+                // AI badge — top right
                 if meal.isAIAnalyzed {
                     VStack {
                         HStack {
@@ -57,7 +60,7 @@ struct MealCardView: View {
                     }
                 }
             }
-            .frame(height: 200)
+            .frame(height: 220)
             .clipShape(
                 UnevenRoundedRectangle(
                     topLeadingRadius: NutrivioTheme.cornerRadiusMedium,
@@ -91,11 +94,13 @@ struct MealCardView: View {
                         .foregroundStyle(NutrivioTheme.textTertiary)
                 }
 
-                // Macro chips
-                MacroChipsRow(macros: meal.macros)
+                // Macro chips — horizontally scrollable if needed
+                ScrollView(.horizontal, showsIndicators: false) {
+                    MacroChipsRow(macros: meal.macros)
+                }
 
-                // Confidence bar (if AI analyzed)
-                if let confidence = meal.confidenceScore {
+                // Confidence bar (only if AI analyzed)
+                if meal.isAIAnalyzed, let confidence = meal.confidenceScore {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 9))
@@ -136,37 +141,33 @@ struct MealCardView: View {
 
     private var photoSection: some View {
         ZStack {
-            // Placeholder with gradient
             LinearGradient(
                 colors: mealGradientColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            // Food illustration placeholder
-            VStack(spacing: 8) {
-                Image(systemName: mealIcon)
-                    .font(.system(size: 40))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
+            Image(systemName: mealIcon)
+                .font(.system(size: 52))
+                .foregroundStyle(.white.opacity(0.35))
         }
     }
 
     private var mealGradientColors: [Color] {
         switch meal.mealType {
-        case .breakfast: return [Color(hex: "F8E8D4"), Color(hex: "E8C9A0")]
-        case .lunch: return [Color(hex: "D4F1D4"), Color(hex: "A0D8A0")]
-        case .dinner: return [Color(hex: "D4D8F1"), Color(hex: "A0A8D8")]
-        case .snack: return [Color(hex: "F1E8D4"), Color(hex: "D8C8A0")]
+        case .breakfast: return [Color(hex: "FFB347"), Color(hex: "F4845F")]
+        case .lunch:     return [Color(hex: "56ab2f"), Color(hex: "a8e063")]
+        case .dinner:    return [Color(hex: "2C3E7A"), Color(hex: "4A6FA5")]
+        case .snack:     return [Color(hex: "f7971e"), Color(hex: "ffd200")]
         }
     }
 
     private var mealIcon: String {
         switch meal.mealType {
         case .breakfast: return "cup.and.saucer.fill"
-        case .lunch: return "fork.knife"
-        case .dinner: return "moon.stars.fill"
-        case .snack: return "carrot.fill"
+        case .lunch:     return "fork.knife"
+        case .dinner:    return "moon.stars.fill"
+        case .snack:     return "carrot.fill"
         }
     }
 
@@ -184,6 +185,7 @@ struct MealCardView: View {
         .padding(.vertical, 4)
         .background(NutrivioTheme.primaryGreen)
         .clipShape(Capsule())
+        .shadow(color: NutrivioTheme.primaryGreen.opacity(0.4), radius: 4)
     }
 
     private var timeFormatted: String {

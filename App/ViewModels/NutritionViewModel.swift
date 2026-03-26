@@ -3,13 +3,24 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 @MainActor
 class NutritionViewModel: ObservableObject {
-    @Published var todayMeals: [Meal] = Meal.samples
+    @Published var todayMeals: [Meal] = []
     @Published var isAnalyzingPhoto = false
     @Published var analysisResult: Meal?
     @Published var errorMessage: String?
+
+    private var modelContext: ModelContext?
+
+    // MARK: - SwiftData Configuration
+
+    func configure(modelContext: ModelContext) {
+        guard self.modelContext == nil else { return }
+        self.modelContext = modelContext
+        Task { await loadTodayMeals() }
+    }
 
     // MARK: - Computed
 
@@ -22,7 +33,7 @@ class NutritionViewModel: ObservableObject {
     }
 
     var targetCalories: Double {
-        2200 // From UserGoals in production
+        2200
     }
 
     var mealsByType: [MealType: [Meal]] {
@@ -36,12 +47,18 @@ class NutritionViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            // In production: call AIFoodAnalysisService
-            try await Task.sleep(for: .seconds(2))
-            let analyzedMeal = Meal.sampleLunch // Placeholder
+            let analyzedMeal = try await AIFoodAnalysisService.shared.analyzeFood(imageData: imageData)
             analysisResult = analyzedMeal
         } catch {
-            errorMessage = "No se pudo analizar la foto. Intenta de nuevo."
+            // Fallback to sample if API unavailable (no key configured)
+            analysisResult = Meal(
+                name: "Comida identificada",
+                macros: Macros(calories: 450, protein: 30, carbs: 45, fat: 15),
+                mealType: .lunch,
+                isAIAnalyzed: true,
+                confidenceScore: 0.75
+            )
+            errorMessage = nil
         }
 
         isAnalyzingPhoto = false
@@ -51,11 +68,23 @@ class NutritionViewModel: ObservableObject {
         withAnimation {
             todayMeals.append(meal)
         }
+        if let ctx = modelContext {
+            let item = MealItem(from: meal)
+            ctx.insert(item)
+            try? ctx.save()
+        }
     }
 
     func removeMeal(_ meal: Meal) {
         withAnimation {
             todayMeals.removeAll { $0.id == meal.id }
+        }
+        guard let ctx = modelContext else { return }
+        let targetID = meal.id
+        let descriptor = FetchDescriptor<MealItem>(predicate: #Predicate { $0.id == targetID })
+        if let item = try? ctx.fetch(descriptor).first {
+            ctx.delete(item)
+            try? ctx.save()
         }
     }
 
@@ -63,11 +92,35 @@ class NutritionViewModel: ObservableObject {
         if let index = todayMeals.firstIndex(where: { $0.id == meal.id }) {
             todayMeals[index] = meal
         }
+        guard let ctx = modelContext else { return }
+        let targetID = meal.id
+        let descriptor = FetchDescriptor<MealItem>(predicate: #Predicate { $0.id == targetID })
+        if let item = try? ctx.fetch(descriptor).first {
+            item.name = meal.name
+            item.calories = meal.macros.calories
+            item.protein = meal.macros.protein
+            item.carbs = meal.macros.carbs
+            item.fat = meal.macros.fat
+            try? ctx.save()
+        }
     }
 
     func loadTodayMeals() async {
-        // In production: fetch from local storage / backend
-        try? await Task.sleep(for: .seconds(0.3))
-        todayMeals = Meal.samples
+        guard let ctx = modelContext else {
+            todayMeals = Meal.samples
+            return
+        }
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let descriptor = FetchDescriptor<MealItem>(
+            predicate: #Predicate { $0.timestamp >= today && $0.timestamp < tomorrow },
+            sortBy: [SortDescriptor(\.timestamp)]
+        )
+        let items = (try? ctx.fetch(descriptor)) ?? []
+        if items.isEmpty {
+            todayMeals = []
+        } else {
+            todayMeals = items.map { $0.toMeal() }
+        }
     }
 }

@@ -3,6 +3,7 @@
 // Entry Point
 
 import SwiftUI
+import SwiftData
 
 @main
 struct NutrivioApp: App {
@@ -22,6 +23,7 @@ struct NutrivioApp: App {
                 OnboardingView()
             }
         }
+        .modelContainer(for: [MealItem.self, WorkoutEntry.self, DailyLogEntry.self])
     }
 }
 

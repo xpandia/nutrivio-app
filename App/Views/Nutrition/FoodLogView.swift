@@ -2,9 +2,11 @@
 // Nutrivio
 
 import SwiftUI
+import SwiftData
 
 struct FoodLogView: View {
     @EnvironmentObject var nutritionVM: NutritionViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var showingCamera = false
     @State private var selectedMealType: MealType?
 
@@ -13,15 +15,12 @@ struct FoodLogView: View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
-                        // Daily summary header
                         dailySummaryHeader
                             .padding(.horizontal, 20)
 
-                        // Meal type filter
                         mealTypeFilter
                             .padding(.horizontal, 20)
 
-                        // Meals feed
                         LazyVStack(spacing: 16) {
                             ForEach(Array(filteredMeals.enumerated()), id: \.element.id) { index, meal in
                                 NavigationLink {
@@ -46,7 +45,6 @@ struct FoodLogView: View {
                 }
                 .background(NutrivioTheme.backgroundPrimary)
 
-                // FAB - Add meal
                 addMealButton
                     .padding(.trailing, 20)
                     .padding(.bottom, 20)
@@ -55,7 +53,11 @@ struct FoodLogView: View {
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showingCamera) {
                 PhotoCaptureView()
+                    .environmentObject(nutritionVM)
             }
+        }
+        .task {
+            nutritionVM.configure(modelContext: modelContext)
         }
     }
 

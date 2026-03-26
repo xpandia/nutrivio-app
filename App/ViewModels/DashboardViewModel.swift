@@ -3,6 +3,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 @MainActor
 class DashboardViewModel: ObservableObject {
@@ -10,9 +11,19 @@ class DashboardViewModel: ObservableObject {
     @Published var goals: UserGoals
     @Published var isLoading = false
 
+    private var modelContext: ModelContext?
+
     init() {
         self.todayLog = DailyLog.sampleToday
         self.goals = UserGoals.default
+    }
+
+    // MARK: - SwiftData Configuration
+
+    func configure(modelContext: ModelContext) {
+        guard self.modelContext == nil else { return }
+        self.modelContext = modelContext
+        Task { await loadTodayData() }
     }
 
     // MARK: - Computed
@@ -34,20 +45,61 @@ class DashboardViewModel: ObservableObject {
 
     func addWater(ml: Double = 250) {
         todayLog.waterML += ml
+        saveTodayLog()
     }
 
     func refreshFromHealthKit() async {
         isLoading = true
-        // In production: fetch data from HealthKitService
         try? await Task.sleep(for: .seconds(1))
         isLoading = false
     }
 
     func loadTodayData() async {
         isLoading = true
-        // In production: fetch from local storage + HealthKit + backend
-        try? await Task.sleep(for: .seconds(0.5))
-        todayLog = DailyLog.sampleToday
-        isLoading = false
+        defer { isLoading = false }
+
+        guard let ctx = modelContext else {
+            todayLog = DailyLog.sampleToday
+            return
+        }
+
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let descriptor = FetchDescriptor<DailyLogEntry>(
+            predicate: #Predicate { $0.date >= today && $0.date < tomorrow }
+        )
+        if let entry = try? ctx.fetch(descriptor).first {
+            todayLog = entry.toDailyLog()
+        } else {
+            // No entry yet for today — start fresh
+            let newEntry = DailyLogEntry(date: today)
+            ctx.insert(newEntry)
+            try? ctx.save()
+            todayLog = DailyLog(date: today)
+        }
+    }
+
+    // MARK: - Sync meals from NutritionViewModel
+
+    func syncMeals(_ meals: [Meal]) {
+        todayLog.meals = meals
+    }
+
+    // MARK: - Persistence
+
+    private func saveTodayLog() {
+        guard let ctx = modelContext else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let descriptor = FetchDescriptor<DailyLogEntry>(
+            predicate: #Predicate { $0.date >= today && $0.date < tomorrow }
+        )
+        if let entry = try? ctx.fetch(descriptor).first {
+            entry.waterML = todayLog.waterML
+            entry.sleepHours = todayLog.sleepHours
+            entry.steps = todayLog.steps
+            entry.activeCalories = todayLog.activeCalories
+            try? ctx.save()
+        }
     }
 }

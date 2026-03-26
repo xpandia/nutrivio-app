@@ -2,30 +2,28 @@
 // Nutrivio
 
 import SwiftUI
+import SwiftData
 
 struct WorkoutView: View {
     @EnvironmentObject var workoutVM: WorkoutViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var showingSummary = false
 
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    // Workout header
                     workoutHeader
                         .padding(.horizontal, 20)
 
-                    // Adaptation note
                     if let note = workoutVM.todayWorkout.adaptationNote {
                         adaptationNote(note)
                             .padding(.horizontal, 20)
                     }
 
-                    // Progress bar
                     workoutProgress
                         .padding(.horizontal, 20)
 
-                    // Exercises
                     LazyVStack(spacing: 12) {
                         ForEach(Array(workoutVM.todayWorkout.exercises.enumerated()), id: \.element.id) { index, exercise in
                             ExerciseCardView(
@@ -40,7 +38,6 @@ struct WorkoutView: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // Finish button
                     if workoutVM.todayWorkout.progress > 0 {
                         finishButton
                             .padding(.horizontal, 20)
@@ -57,6 +54,9 @@ struct WorkoutView: View {
             .sheet(isPresented: $showingSummary) {
                 WorkoutSummaryView(workout: workoutVM.todayWorkout)
             }
+        }
+        .task {
+            workoutVM.configure(modelContext: modelContext)
         }
     }
 
@@ -104,6 +104,30 @@ struct WorkoutView: View {
             }
             .font(.caption)
             .foregroundStyle(NutrivioTheme.textSecondary)
+
+            // Generate button
+            Button {
+                Task { await workoutVM.generateWorkout() }
+            } label: {
+                HStack(spacing: 6) {
+                    if workoutVM.isGenerating {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "sparkles")
+                            .font(.caption)
+                    }
+                    Text(workoutVM.isGenerating ? "Generando..." : "Generar con IA")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(NutrivioTheme.cobaltBlue)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(NutrivioTheme.cobaltBlue.opacity(0.1))
+                .clipShape(Capsule())
+            }
+            .disabled(workoutVM.isGenerating)
         }
         .padding(20)
         .background(
@@ -170,6 +194,7 @@ struct WorkoutView: View {
 
     private var finishButton: some View {
         Button {
+            workoutVM.stopWorkout()
             showingSummary = true
         } label: {
             HStack {

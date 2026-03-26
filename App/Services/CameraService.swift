@@ -27,7 +27,6 @@ class CameraService: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
-        // Camera input
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
               let input = try? AVCaptureDeviceInput(device: camera) else {
             error = .cameraUnavailable
@@ -39,11 +38,8 @@ class CameraService: NSObject, ObservableObject {
             session.addInput(input)
         }
 
-        // Photo output
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
-            photoOutput.isHighResolutionCaptureEnabled = true
-            photoOutput.maxPhotoQualityPrioritization = .quality
         }
 
         session.commitConfiguration()
@@ -79,11 +75,6 @@ class CameraService: NSObject, ObservableObject {
 
             let settings = AVCapturePhotoSettings()
             settings.flashMode = flashMode
-
-            if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
-                settings.photoQualityPrioritization = .quality
-            }
-
             photoOutput.capturePhoto(with: settings, delegate: self)
         }
     }

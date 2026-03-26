@@ -141,7 +141,7 @@ class AIWorkoutService {
         let calories = workoutJSON["estimated_calories"] as? Int ?? 300
         let adaptationNote = workoutJSON["adaptation_note"] as? String
 
-        let workoutType = WorkoutType(rawValue: typeStr) ?? .strength
+        let workoutType = workoutTypeFrom(englishString: typeStr)
 
         var exercises: [Exercise] = []
         if let exercisesArray = workoutJSON["exercises"] as? [[String: Any]] {
@@ -173,6 +173,23 @@ class AIWorkoutService {
             aiGenerated: true,
             adaptationNote: adaptationNote
         )
+    }
+
+    // MARK: - WorkoutType Mapping
+
+    /// Maps the English type strings returned by the AI to the WorkoutType enum.
+    /// The AI prompt requests English keys (strength, hiit, yoga, cardio, flexibility, functional)
+    /// but WorkoutType raw values are in Spanish.
+    private func workoutTypeFrom(englishString: String) -> WorkoutType {
+        switch englishString.lowercased().trimmingCharacters(in: .whitespaces) {
+        case "strength":    return .strength
+        case "hiit":        return .hiit
+        case "yoga":        return .yoga
+        case "cardio":      return .cardio
+        case "flexibility": return .flexibility
+        case "functional":  return .functional
+        default:            return .strength
+        }
     }
 }
 

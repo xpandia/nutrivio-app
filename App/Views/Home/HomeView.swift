@@ -2,26 +2,26 @@
 // Nutrivio
 
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
     @EnvironmentObject var dashboardVM: DashboardViewModel
+    @EnvironmentObject var nutritionVM: NutritionViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var showingProfile = false
 
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    // Header
                     headerSection
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
 
-                    // AI Coach tip
                     aiCoachCard
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
 
-                    // Dashboard
                     DashboardView(
                         dailyLog: dashboardVM.todayLog,
                         goals: dashboardVM.goals
@@ -29,7 +29,6 @@ struct HomeView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 16)
 
-                    // Quick actions
                     quickActions
                         .padding(.horizontal, 20)
                         .padding(.bottom, 32)
@@ -59,13 +58,19 @@ struct HomeView: View {
                 }
             }
         }
+        .task {
+            dashboardVM.configure(modelContext: modelContext)
+            nutritionVM.configure(modelContext: modelContext)
+        }
+        .onChange(of: nutritionVM.todayMeals) { _, meals in
+            dashboardVM.syncMeals(meals)
+        }
     }
 
     // MARK: - Header
 
     private var headerSection: some View {
         HStack {
-            // Today summary pill
             HStack(spacing: 8) {
                 Image(systemName: "calendar")
                     .font(.caption)
@@ -81,7 +86,6 @@ struct HomeView: View {
 
             Spacer()
 
-            // Streak
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
                     .foregroundStyle(NutrivioTheme.energyOrange)
@@ -161,7 +165,9 @@ struct HomeView: View {
                     icon: "drop.fill",
                     label: "Agua",
                     color: NutrivioTheme.skyBlue
-                )
+                ) {
+                    dashboardVM.addWater(ml: 250)
+                }
             }
         }
     }
@@ -189,29 +195,34 @@ struct QuickActionButton: View {
     let icon: String
     let label: String
     let color: Color
+    var action: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(color.opacity(0.1))
-                    .frame(width: 56, height: 56)
+        Button(action: { action?() }) {
+            VStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(color.opacity(0.1))
+                        .frame(width: 56, height: 56)
 
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(color)
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                }
+
+                Text(label)
+                    .font(.system(size: 10))
+                    .fontWeight(.medium)
+                    .foregroundStyle(NutrivioTheme.textSecondary)
             }
-
-            Text(label)
-                .font(.system(size: 10))
-                .fontWeight(.medium)
-                .foregroundStyle(NutrivioTheme.textSecondary)
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
     }
 }
 
 #Preview {
     HomeView()
         .environmentObject(DashboardViewModel())
+        .environmentObject(NutritionViewModel())
 }
