@@ -7,6 +7,8 @@ struct DashboardView: View {
     let dailyLog: DailyLog
     let goals: UserGoals
 
+    @State private var animatedScore: Double = 0
+
     var body: some View {
         VStack(spacing: 20) {
             // MARK: - Health Score
@@ -25,13 +27,23 @@ struct DashboardView: View {
             metricsGrid
                 .staggered(index: 3)
         }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.2)) {
+                animatedScore = Double(dailyLog.healthScore)
+            }
+        }
+        .onChange(of: dailyLog.healthScore) { _, newScore in
+            withAnimation(.easeInOut(duration: 0.8)) {
+                animatedScore = Double(newScore)
+            }
+        }
     }
 
     // MARK: - Health Score Card
 
     private var healthScoreCard: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Tu dia de salud")
                     .font(.subheadline)
                     .foregroundStyle(NutrivioTheme.textSecondary)
@@ -40,6 +52,7 @@ struct DashboardView: View {
                     Text("\(dailyLog.healthScore)")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundStyle(scoreColor)
+                        .contentTransition(.numericText())
 
                     Text("/100")
                         .font(.title3)
@@ -50,25 +63,41 @@ struct DashboardView: View {
                 Text(scoreMessage)
                     .font(.caption)
                     .foregroundStyle(NutrivioTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer()
 
-            // Mini score ring
+            // Animated tri-color score ring
             ZStack {
+                // Track
                 Circle()
-                    .stroke(scoreColor.opacity(0.15), lineWidth: 8)
+                    .stroke(Color.gray.opacity(0.12), lineWidth: 9)
+                    .frame(width: 72, height: 72)
 
+                // Filled arc — tri-color AngularGradient
                 Circle()
-                    .trim(from: 0, to: Double(dailyLog.healthScore) / 100.0)
-                    .stroke(scoreColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .trim(from: 0, to: animatedScore / 100.0)
+                    .stroke(
+                        AngularGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: NutrivioTheme.emeraldGreen, location: 0.0),
+                                .init(color: NutrivioTheme.energyOrange, location: 0.5),
+                                .init(color: NutrivioTheme.carbsOrange, location: 1.0),
+                            ]),
+                            center: .center,
+                            startAngle: .degrees(-90),
+                            endAngle: .degrees(270)
+                        ),
+                        style: StrokeStyle(lineWidth: 9, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
+                    .frame(width: 72, height: 72)
 
                 Image(systemName: scoreIcon)
-                    .font(.title2)
+                    .font(.system(size: 20))
                     .foregroundStyle(scoreColor)
             }
-            .frame(width: 70, height: 70)
         }
         .padding(20)
         .nutrivioCard()
@@ -90,7 +119,7 @@ struct DashboardView: View {
 
     private var scoreMessage: String {
         let score = dailyLog.healthScore
-        if score >= 80 { return "Excelente! Sigue asi." }
+        if score >= 80 { return "Excelente! Sigue asi, estas en racha." }
         if score >= 60 { return "Buen dia. Puedes mejorar tu hidratacion." }
         return "Hay margen de mejora. Empieza con una comida balanceada."
     }
@@ -257,6 +286,7 @@ struct MetricTile: View {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(iconColor)
                             .frame(width: geo.size.width * min(progress, 1.0))
+                            .animation(NutrivioAnimations.easeInOutMedium, value: progress)
                     }
                 }
                 .frame(height: 4)

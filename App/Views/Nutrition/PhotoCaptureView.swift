@@ -2,21 +2,32 @@
 // Nutrivio
 
 import SwiftUI
+import SwiftData
 
 struct PhotoCaptureView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var nutritionVM: NutritionViewModel
+    @Environment(\.modelContext) private var modelContext
+
+    @StateObject private var cameraService = CameraService()
     @State private var isAnalyzing = false
     @State private var showResult = false
     @State private var flashOn = false
-    @State private var capturedImage = false
+    @State private var cameraPermissionGranted = false
+    @State private var scanningRotation: Double = 0
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Camera preview placeholder
-                Color.black
-                    .ignoresSafeArea()
+                Color.black.ignoresSafeArea()
 
+                // Live camera preview (fills background)
+                if cameraPermissionGranted {
+                    CameraPreview(session: cameraService.session)
+                        .ignoresSafeArea()
+                }
+
+                // Overlaid states
                 if isAnalyzing {
                     analyzingOverlay
                 } else if showResult {
@@ -28,9 +39,7 @@ struct PhotoCaptureView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
+                    Button { dismiss() } label: {
                         Image(systemName: "xmark")
                             .font(.title3)
                             .foregroundStyle(.white)
@@ -40,6 +49,7 @@ struct PhotoCaptureView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         flashOn.toggle()
+                        cameraService.flashMode = flashOn ? .on : .auto
                     } label: {
                         Image(systemName: flashOn ? "bolt.fill" : "bolt.slash.fill")
                             .font(.title3)
@@ -47,6 +57,17 @@ struct PhotoCaptureView: View {
                     }
                 }
             }
+        }
+        .task {
+            nutritionVM.configure(modelContext: modelContext)
+            cameraPermissionGranted = await cameraService.requestPermission()
+            if cameraPermissionGranted {
+                cameraService.setupSession()
+                cameraService.startSession()
+            }
+        }
+        .onDisappear {
+            cameraService.stopSession()
         }
     }
 
@@ -56,13 +77,12 @@ struct PhotoCaptureView: View {
         VStack {
             Spacer()
 
-            // Viewfinder frame
+            // Viewfinder frame with corner accents
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(.white.opacity(0.4), lineWidth: 2)
-                    .frame(width: 300, height: 300)
+                    .strokeBorder(.white.opacity(0.35), lineWidth: 1.5)
+                    .frame(width: 280, height: 280)
 
-                // Corner accents
                 ForEach(0..<4, id: \.self) { corner in
                     CornerAccent()
                         .rotationEffect(.degrees(Double(corner) * 90))
@@ -70,18 +90,17 @@ struct PhotoCaptureView: View {
 
                 VStack(spacing: 8) {
                     Image(systemName: "viewfinder")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .font(.system(size: 36))
+                        .foregroundStyle(.white.opacity(0.4))
 
                     Text("Centra tu comida aqui")
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
             }
 
             Spacer()
 
-            // Tip
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
                     .foregroundStyle(NutrivioTheme.primaryGreen)
@@ -92,25 +111,21 @@ struct PhotoCaptureView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
 
-            // Capture controls
+            // Controls
             HStack(spacing: 40) {
-                // Gallery button
-                Button {
-                    // Open gallery
-                } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.white.opacity(0.15))
-                            .frame(width: 48, height: 48)
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                    }
+                // Gallery placeholder
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.white.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.title3)
+                        .foregroundStyle(.white)
                 }
 
                 // Shutter button
                 Button {
-                    capturePhoto()
+                    Task { await captureAndAnalyze() }
                 } label: {
                     ZStack {
                         Circle()
@@ -122,19 +137,17 @@ struct PhotoCaptureView: View {
                             .frame(width: 60, height: 60)
                     }
                 }
+                .scaleEffect(isAnalyzing ? 0.9 : 1.0)
+                .animation(NutrivioAnimations.springSmooth, value: isAnalyzing)
 
                 // Manual entry
-                Button {
-                    // Text search
-                } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.white.opacity(0.15))
-                            .frame(width: 48, height: 48)
-                        Image(systemName: "text.magnifyingglass")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                    }
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.white.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "text.magnifyingglass")
+                        .font(.title3)
+                        .foregroundStyle(.white)
                 }
             }
             .padding(.bottom, 40)
@@ -148,18 +161,30 @@ struct PhotoCaptureView: View {
             Spacer()
 
             ZStack {
-                // Scanning animation
+                // Outer static ring
                 Circle()
-                    .stroke(NutrivioTheme.primaryGreen.opacity(0.3), lineWidth: 3)
-                    .frame(width: 120, height: 120)
+                    .stroke(NutrivioTheme.primaryGreen.opacity(0.15), lineWidth: 3)
+                    .frame(width: 160, height: 160)
 
+                // Middle pulsing ring
+                Circle()
+                    .stroke(NutrivioTheme.primaryGreen.opacity(0.25), lineWidth: 2)
+                    .frame(width: 120, height: 120)
+                    .pulse()
+
+                // Inner spinning arc
                 Circle()
                     .trim(from: 0, to: 0.3)
                     .stroke(NutrivioTheme.primaryGreen, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .frame(width: 120, height: 120)
-                    .rotationEffect(.degrees(isAnalyzing ? 360 : 0))
-                    .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: isAnalyzing)
+                    .rotationEffect(.degrees(scanningRotation))
+                    .onAppear {
+                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                            scanningRotation = 360
+                        }
+                    }
 
+                // Center icon
                 Image(systemName: "sparkles")
                     .font(.system(size: 36))
                     .foregroundStyle(NutrivioTheme.primaryGreen)
@@ -175,10 +200,12 @@ struct PhotoCaptureView: View {
                 Text("Identificando alimentos y calculando macros")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
             }
 
             Spacer()
         }
+        .transition(.opacity.combined(with: .scale))
     }
 
     // MARK: - Result Overlay
@@ -198,27 +225,41 @@ struct PhotoCaptureView: View {
                         .foregroundStyle(.white)
 
                     Spacer()
+
+                    Button {
+                        withAnimation {
+                            showResult = false
+                            nutritionVM.analysisResult = nil
+                        }
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
                 }
 
-                MealCardView(meal: .sampleLunch)
-                    .padding(.horizontal, -16)
+                if let meal = nutritionVM.analysisResult {
+                    MealCardView(meal: meal)
+                }
 
                 HStack(spacing: 12) {
                     Button {
-                        dismiss()
+                        withAnimation {
+                            showResult = false
+                            nutritionVM.analysisResult = nil
+                        }
                     } label: {
-                        Text("Ajustar")
+                        Text("Reintentar")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(.white.opacity(0.2))
+                            .background(.white.opacity(0.18))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
                     Button {
-                        dismiss()
+                        saveMealAndDismiss()
                     } label: {
                         Text("Guardar")
                             .font(.subheadline)
@@ -236,23 +277,34 @@ struct PhotoCaptureView: View {
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .padding(16)
         }
+        .transition(NutrivioAnimations.slideUp)
     }
 
     // MARK: - Actions
 
-    private func capturePhoto() {
-        withAnimation {
-            capturedImage = true
-            isAnalyzing = true
+    private func captureAndAnalyze() async {
+        // Try real camera capture; fall back to a sample data blob for simulator
+        let imageData: Data
+        if let captured = await cameraService.capturePhoto() {
+            imageData = captured
+        } else {
+            imageData = Data()
         }
 
-        // Simulate AI analysis
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation {
-                isAnalyzing = false
-                showResult = true
-            }
+        withAnimation { isAnalyzing = true }
+        await nutritionVM.analyzePhoto(imageData: imageData)
+        withAnimation {
+            isAnalyzing = false
+            showResult = true
         }
+    }
+
+    private func saveMealAndDismiss() {
+        if let meal = nutritionVM.analysisResult {
+            nutritionVM.addMeal(meal)
+            nutritionVM.analysisResult = nil
+        }
+        dismiss()
     }
 }
 
@@ -274,10 +326,11 @@ struct CornerAccent: View {
             }
             Spacer()
         }
-        .frame(width: 300, height: 300)
+        .frame(width: 280, height: 280)
     }
 }
 
 #Preview {
     PhotoCaptureView()
+        .environmentObject(NutritionViewModel())
 }
