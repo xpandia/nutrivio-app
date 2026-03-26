@@ -17,6 +17,7 @@ struct MacroRingsView: View {
     @State private var proteinProgress: Double = 0
     @State private var carbsProgress: Double = 0
     @State private var fatProgress: Double = 0
+    @State private var glowPulse: Bool = false
 
     private let lineWidth: CGFloat = 14
     private let ringGap: CGFloat = 19
@@ -40,7 +41,8 @@ struct MacroRingsView: View {
                 Circle()
                     .fill(NutrivioTheme.fatBlue)
                     .frame(width: lineWidth * 0.85, height: lineWidth * 0.85)
-                    .shadow(color: NutrivioTheme.fatBlue.opacity(0.7), radius: 6)
+                    .shadow(color: NutrivioTheme.fatBlue.opacity(glowPulse ? 0.9 : 0.4),
+                            radius: glowPulse ? 10 : 4)
                     .offset(y: -(size / 2))
                     .rotationEffect(.degrees(360 * fatProgress - 90))
             }
@@ -63,7 +65,8 @@ struct MacroRingsView: View {
                 Circle()
                     .fill(NutrivioTheme.carbsOrange)
                     .frame(width: lineWidth * 0.85, height: lineWidth * 0.85)
-                    .shadow(color: NutrivioTheme.carbsOrange.opacity(0.7), radius: 6)
+                    .shadow(color: NutrivioTheme.carbsOrange.opacity(glowPulse ? 0.9 : 0.4),
+                            radius: glowPulse ? 10 : 4)
                     .offset(y: -(carbsSize / 2))
                     .rotationEffect(.degrees(360 * carbsProgress - 90))
             }
@@ -86,7 +89,8 @@ struct MacroRingsView: View {
                 Circle()
                     .fill(NutrivioTheme.emeraldGreen)
                     .frame(width: lineWidth * 0.85, height: lineWidth * 0.85)
-                    .shadow(color: NutrivioTheme.emeraldGreen.opacity(0.7), radius: 6)
+                    .shadow(color: NutrivioTheme.emeraldGreen.opacity(glowPulse ? 0.9 : 0.4),
+                            radius: glowPulse ? 10 : 4)
                     .offset(y: -(proteinSize / 2))
                     .rotationEffect(.degrees(360 * proteinProgress - 90))
             }
@@ -112,6 +116,12 @@ struct MacroRingsView: View {
             }
             withAnimation(NutrivioAnimations.ringFill.delay(0.3)) {
                 fatProgress = min(fat / max(fatTarget, 1), 1.0)
+            }
+            // Glow pulse animation after rings fill
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                    glowPulse = true
+                }
             }
         }
         .onChange(of: protein) { _, v in
