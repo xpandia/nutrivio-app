@@ -8,6 +8,7 @@ import SwiftData
 @MainActor
 class NutritionViewModel: ObservableObject {
     @Published var todayMeals: [Meal] = []
+    @Published var mealUpdateCount: Int = 0
     @Published var isAnalyzingPhoto = false
     @Published var analysisResult: Meal?
     @Published var errorMessage: String?
@@ -86,12 +87,14 @@ class NutritionViewModel: ObservableObject {
         item.dailyLog = logEntry
         ctx.insert(item)
         try? ctx.save()
+        mealUpdateCount += 1
     }
 
     func removeMeal(_ meal: Meal) {
         withAnimation {
             todayMeals.removeAll { $0.id == meal.id }
         }
+        mealUpdateCount += 1
         guard let ctx = modelContext else { return }
         let targetID = meal.id
         let descriptor = FetchDescriptor<MealItem>(predicate: #Predicate { $0.id == targetID })

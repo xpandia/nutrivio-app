@@ -62,6 +62,9 @@ struct HomeView: View {
             dashboardVM.configure(modelContext: modelContext)
             nutritionVM.configure(modelContext: modelContext)
         }
+        .onChange(of: nutritionVM.mealUpdateCount) { _, _ in
+            Task { await dashboardVM.loadTodayData() }
+        }
     }
 
     // MARK: - Header

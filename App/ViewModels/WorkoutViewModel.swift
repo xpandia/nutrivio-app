@@ -54,6 +54,7 @@ class WorkoutViewModel: ObservableObject {
         withAnimation(NutrivioAnimations.springSmooth) {
             todayWorkout.exercises[index].isCompleted.toggle()
         }
+        saveTodayWorkout()
     }
 
     func startWorkout() {

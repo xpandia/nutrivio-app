@@ -75,19 +75,18 @@ struct DashboardView: View {
                     .stroke(Color.gray.opacity(0.12), lineWidth: 9)
                     .frame(width: 72, height: 72)
 
-                // Filled arc — tri-color AngularGradient
+                // Filled arc — gradient from green → bracket color at trim end
                 Circle()
                     .trim(from: 0, to: animatedScore / 100.0)
                     .stroke(
                         AngularGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: NutrivioTheme.emeraldGreen, location: 0.0),
-                                .init(color: NutrivioTheme.energyOrange, location: 0.5),
-                                .init(color: Color.red, location: 1.0),
+                            gradient: Gradient(colors: [
+                                NutrivioTheme.emeraldGreen,
+                                scoreColor,
                             ]),
                             center: .center,
                             startAngle: .degrees(-90),
-                            endAngle: .degrees(270)
+                            endAngle: .degrees(-90 + 360 * (animatedScore / 100.0))
                         ),
                         style: StrokeStyle(lineWidth: 9, lineCap: .round)
                     )
